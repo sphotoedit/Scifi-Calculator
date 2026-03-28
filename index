@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA CALC — SCI-FI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  background: #020b14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  overflow: hidden;
+}
+
+/* Animated grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridMove 20s linear infinite;
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0,200,255,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+@keyframes gridMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+/* Scanline overlay */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+.calc-shell {
+  position: relative;
+  z-index: 10;
+  width: 360px;
+}
+
+/* Corner decorations */
+.corner { position: absolute; width: 20px; height: 20px; }
+.corner::before, .corner::after { content: ''; position: absolute; background: #00ffe0; }
+.corner::before { width: 100%; height: 2px; top: 0; }
+.corner::after  { width: 2px; height: 100%; top: 0; }
+.c-tl { top: -2px; left: -2px; }
+.c-tr { top: -2px; right: -2px; transform: scaleX(-1); }
+.c-bl { bottom: -2px; left: -2px; transform: scaleY(-1); }
+.c-br { bottom: -2px; right: -2px; transform: scale(-1); }
+
+.calculator {
+  background: rgba(2, 14, 26, 0.95);
+  border: 1px solid rgba(0,255,220,0.18);
+  border-radius: 4px;
+  padding: 24px 22px 26px;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(0,255,220,0.06) inset,
+    0 0 60px rgba(0,200,255,0.08),
+    0 0 120px rgba(0,100,200,0.06);
+}
+
+/* Top header bar */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.header-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: rgba(0,255,220,0.5);
+  text-transform: uppercase;
+}
+
+.status-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sdot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+.sdot:nth-child(1) { background: #00ffe0; animation-delay: 0s; }
+.sdot:nth-child(2) { background: #0088ff; animation-delay: 0.4s; }
+.sdot:nth-child(3) { background: rgba(0,255,220,0.3); animation-delay: 0.8s; }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Display */
+.display {
+  background: #010d18;
+  border: 1px solid rgba(0,255,220,0.14);
+  border-radius: 3px;
+  padding: 18px 18px 14px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  min-height: 118px;
+}
+
+.display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,255,220,0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.display-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00ffe0, transparent);
+  animation: scanline 4s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+@keyframes scanline {
+  0%, 100% { top: 0; opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.display-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(0,255,220,0.3);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.display-expr {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: rgba(0,255,220,0.4);
+  text-align: right;
+  min-height: 16px;
+  letter-spacing: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.display-main {
+  font-family: 'Orbitron', monospace;
+  font-size: 44px;
+  font-weight: 900;
+  color: #00ffe0;
+  text-align: right;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  text-shadow:
+    0 0 10px rgba(0,255,220,0.8),
+    0 0 30px rgba(0,255,220,0.3),
+    0 0 60px rgba(0,200,255,0.15);
+  word-break: break-all;
+  transition: transform 0.08s ease;
+}
+
+.display-main.pop {
+  transform: scale(1.03);
+  text-shadow:
+    0 0 20px rgba(0,255,220,1),
+    0 0 50px rgba(0,255,220,0.5),
+    0 0 80px rgba(0,200,255,0.3);
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,220,0.25), transparent);
+  margin-bottom: 18px;
+}
+
+/* Buttons */
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  border-radius: 3px;
+  height: 58px;
+  font-family: 'Orbitron', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.1s ease;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: rgba(0,255,220,0.1);
+}
+
+.btn:hover::after { opacity: 1; }
+.btn:active { transform: scale(0.92); }
+
+/* Ripple on click */
+.btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  width: 80px; height: 80px;
+  background: rgba(0,255,220,0.25);
+  transform: scale(0);
+  animation: ripple 0.4s linear;
+  pointer-events: none;
+  margin-left: -40px;
+  margin-top: -40px;
+}
+
+@keyframes ripple {
+  to { transform: scale(3); opacity: 0; }
+}
+
+.btn-num {
+  background: rgba(0,30,50,0.8);
+  color: #a0e8ff;
+  border: 1px solid rgba(0,180,255,0.15);
+  box-shadow: 0 0 8px rgba(0,100,200,0.1) inset;
+}
+
+.btn-fn {
+  background: rgba(0,20,35,0.9);
+  color: rgba(0,255,220,0.6);
+  border: 1px solid rgba(0,255,220,0.1);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.btn-op {
+  background: rgba(0,40,60,0.9);
+  color: #00ffe0;
+  border: 1px solid rgba(0,255,220,0.2);
+  font-size: 18px;
+  box-shadow:
+    0 0 12px rgba(0,255,220,0.06) inset,
+    0 0 4px rgba(0,255,220,0.08);
+  text-shadow: 0 0 8px rgba(0,255,220,0.6);
+}
+
+.btn-eq {
+  background: rgba(0,255,220,0.08);
+  color: #00ffe0;
+  border: 1px solid rgba(0,255,220,0.45);
+  font-size: 22px;
+  box-shadow:
+    0 0 20px rgba(0,255,220,0.15),
+    0 0 8px rgba(0,255,220,0.1) inset;
+  text-shadow: 0 0 15px rgba(0,255,220,1), 0 0 30px rgba(0,255,220,0.5);
+  animation: eqPulse 3s ease-in-out infinite;
+}
+
+@keyframes eqPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,255,220,0.15), 0 0 8px rgba(0,255,220,0.1) inset; }
+  50% { box-shadow: 0 0 30px rgba(0,255,220,0.3), 0 0 12px rgba(0,255,220,0.15) inset; }
+}
+
+.btn-zero {
+  grid-column: span 2;
+  text-align: left;
+  padding-left: 22px;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.footer-line {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgba(0,255,220,0.12));
+}
+
+.footer-text {
+  font-size: 8px;
+  color: rgba(0,255,220,0.2);
+  letter-spacing: 3px;
+  padding: 0 12px;
+}
+
+.footer-line.right {
+  background: linear-gradient(90deg, rgba(0,255,220,0.12), transparent);
+}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<div class="calc-shell">
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+
+  <div class="calculator">
+    <div class="header">
+      <div class="header-label">NOVA · CALC · v2.4</div>
+      <div class="status-dots">
+        <div class="sdot"></div>
+        <div class="sdot"></div>
+        <div class="sdot"></div>
+      </div>
+    </div>
+
+    <div class="display">
+      <div class="display-line"></div>
+      <div class="display-tag">
+        <span>SYS::INPUT</span>
+        <span id="mode">STANDARD</span>
+      </div>
+      <div class="display-expr" id="expr"></div>
+      <div class="display-main" id="display">0</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="buttons">
+      <button class="btn btn-fn" onclick="clearAll(this)">AC</button>
+      <button class="btn btn-fn" onclick="toggleSign(this)">+/−</button>
+      <button class="btn btn-fn" onclick="percent(this)">%</button>
+      <button class="btn btn-op" onclick="inputOp('/', this)">÷</button>
+
+      <button class="btn btn-num" onclick="inputNum('7',this)">7</button>
+      <button class="btn btn-num" onclick="inputNum('8',this)">8</button>
+      <button class="btn btn-num" onclick="inputNum('9',this)">9</button>
+      <button class="btn btn-op" onclick="inputOp('*', this)">×</button>
+
+      <button class="btn btn-num" onclick="inputNum('4',this)">4</button>
+      <button class="btn btn-num" onclick="inputNum('5',this)">5</button>
+      <button class="btn btn-num" onclick="inputNum('6',this)">6</button>
+      <button class="btn btn-op" onclick="inputOp('-', this)">−</button>
+
+      <button class="btn btn-num" onclick="inputNum('1',this)">1</button>
+      <button class="btn btn-num" onclick="inputNum('2',this)">2</button>
+      <button class="btn btn-num" onclick="inputNum('3',this)">3</button>
+      <button class="btn btn-op" onclick="inputOp('+', this)">+</button>
+
+      <button class="btn btn-num btn-zero" onclick="inputNum('0',this)">0</button>
+      <button class="btn btn-num" onclick="inputDot(this)">.</button>
+      <button class="btn btn-eq" onclick="calculate(null, this)">=</button>
+    </div>
+
+    <div class="footer">
+      <div class="footer-line"></div>
+      <div class="footer-text">QUANTUM · ENGINE · ACTIVE</div>
+      <div class="footer-line right"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let current = '0';
+  let previous = '';
+  let operator = null;
+  let shouldReset = false;
+
+  const disp = document.getElementById('display');
+  const expr = document.getElementById('expr');
+
+  function updateDisplay(val) {
+    let d = val.toString();
+    if (d.length > 10) d = parseFloat(parseFloat(d).toPrecision(9)).toString();
+    disp.textContent = d;
+    disp.classList.add('pop');
+    setTimeout(() => disp.classList.remove('pop'), 120);
+  }
+
+  function addRipple(btn, e) {
+    if (!btn) return;
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    r.style.left = ((e ? e.clientX : rect.left + rect.width/2) - rect.left) + 'px';
+    r.style.top  = ((e ? e.clientY : rect.top  + rect.height/2) - rect.top)  + 'px';
+    btn.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  }
+
+  function inputNum(n, btn, e) {
+    addRipple(btn, e);
+    if (shouldReset) { current = n; shouldReset = false; }
+    else current = current === '0' ? n : current + n;
+    updateDisplay(current);
+  }
+
+  function inputDot(btn, e) {
+    addRipple(btn, e);
+    if (shouldReset) { current = '0.'; shouldReset = false; }
+    else if (!current.includes('.')) current += '.';
+    updateDisplay(current);
+  }
+
+  function inputOp(op, btn, e) {
+    addRipple(btn, e);
+    const opMap = { '/': '÷', '*': '×', '-': '−', '+': '+' };
+    if (operator && !shouldReset) calculate(true);
+    previous = current;
+    operator = op;
+    shouldReset = true;
+    expr.textContent = previous + ' ' + opMap[op];
+  }
+
+  function calculate(chain = false, btn, e) {
+    addRipple(btn, e);
+    if (!operator || !previous) return;
+    const a = parseFloat(previous);
+    const b = parseFloat(current);
+    let result;
+    if (operator === '+') result = a + b;
+    else if (operator === '-') result = a - b;
+    else if (operator === '*') result = a * b;
+    else if (operator === '/') result = b !== 0 ? a / b : 'ERR';
+    const opMap = { '/': '÷', '*': '×', '-': '−', '+': '+' };
+    if (!chain) expr.textContent = previous + ' ' + opMap[operator] + ' ' + current + ' =';
+    current = result.toString();
+    if (!chain) operator = null;
+    shouldReset = true;
+    updateDisplay(current);
+  }
+
+  function clearAll(btn, e) {
+    addRipple(btn, e);
+    current = '0'; previous = ''; operator = null; shouldReset = false;
+    expr.textContent = ''; updateDisplay('0');
+  }
+
+  function toggleSign(btn, e) {
+    addRipple(btn, e);
+    current = (parseFloat(current) * -1).toString();
+    updateDisplay(current);
+  }
+
+  function percent(btn, e) {
+    addRipple(btn, e);
+    current = (parseFloat(current) / 100).toString();
+    updateDisplay(current);
+  }
+
+  document.addEventListener('keydown', ev => {
+    if ('0123456789'.includes(ev.key)) inputNum(ev.key);
+    else if (ev.key === '.') inputDot();
+    else if (ev.key === '+') inputOp('+');
+    else if (ev.key === '-') inputOp('-');
+    else if (ev.key === '*') inputOp('*');
+    else if (ev.key === '/') { ev.preventDefault(); inputOp('/'); }
+    else if (ev.key === 'Enter' || ev.key === '=') calculate();
+    else if (ev.key === 'Escape') clearAll();
+    else if (ev.key === 'Backspace') {
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+      updateDisplay(current);
+    }
+  });
+</script>
+</body>
+</html>
